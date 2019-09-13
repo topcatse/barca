@@ -1,0 +1,10 @@
+{
+    "dev": {
+        "app_function": "barca.app",
+        "aws_region": "eu-west-1",
+        "profile_name": "topcatse",
+        "project_name": "barca",
+        "runtime": "python3.6",
+        "s3_bucket": "barca-70usv8epi"
+    }
+}
