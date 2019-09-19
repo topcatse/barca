@@ -21,7 +21,6 @@ class Todo(db.Model):
         return '<Route %r>' % self.id
 
 class Routing:
-    api_key = '5b3ce3597851110001cf62483e0ef536e3774f178075fd328e2082a1'
     clnt = client.Client(key=api_key)
 
     def style_function(self, color):  # To style data
