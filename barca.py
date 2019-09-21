@@ -14,13 +14,16 @@ db = SQLAlchemy(app)
 
 class Todo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    content = db.Column(db.String(200), nullable=False)
+    name = db.Column(db.String(200), nullable=False)
+    begin = db.Column(db.Float, nullable=False)
+    end = db.Column(db.Float, nullable=False)
     date_created = db.Column(db.DateTime, default=datetime.utcnow)
 
     def __repr__(self):
         return '<Route %r>' % self.id
 
 class Routing:
+    api_key = '698696'
     clnt = client.Client(key=api_key)
 
     def style_function(self, color):  # To style data
@@ -56,13 +59,15 @@ class Routing:
 
 @app.route('/', methods=['POST', 'GET'])
 def index():
-    start_coords = (46.9540700, 142.7360300)
+    start_coords = (58.493694, 14.501953)
     folium_map = folium.Map(location=start_coords, zoom_start=14,width='100%', height='75%')
     folium_map.save('templates/map.html')
 
     if request.method == 'POST':
-        route_content = request.form['content']
-        new_route = Todo(content=route_content)
+        route_name = request.form['name']
+        route_begin = request.form['begin']
+        route_end = request.form['end']
+        new_route = Todo(name=route_name, begin=route_begin, end=route_end)
 
         try:
             db.session.add(new_route)

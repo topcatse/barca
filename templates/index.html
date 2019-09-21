@@ -6,12 +6,13 @@
 
 {% block body %}
 
-<div class="content">
-    <h1 style="text-align: center">Route Master</h1>
-</div>
+<!--<div class="content">-->
+<h1 style="text-align: center">Route Master</h1>
+<!--</div>-->
 
-{% include "map.html" %}
+<!--{% include "map.html" %}-->
 
+<!--
 <div class="content">
     {% if routes|length < 1 %}
     <h4 style="text-align: center">There are no routes. Create one below!</h4>
@@ -23,8 +24,52 @@
             <th>Actions</th>
         </tr>
         {% for route in routes %}
+        <tr>
+            <td>{{ route.content }}</td>
+            <td>{{ route.date_created.date() }}</td>
+            <td>
+                <a href="/delete/{{route.id}}">Delete</a>
+                <br>
+                <a href="/update/{{route.id}}">Update</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% endif %}
+</div>
+
+<div class="content">
+    <div class="form">
+        <form action="/" method="POST">
+            &lt;!&ndash;<input type="text" name="content" id="content">&ndash;&gt;
+            &lt;!&ndash;<input type="submit" value="Add Route">&ndash;&gt;
+
+            <fieldset>
+                <legend>Add route:</legend>
+                Name: <input type="text" name="name" id="content">
+                Begin: <input type="text" name="begin" id="content">
+                End: <input type="text" name="end" id="content"><br><br>
+                <input type="submit" value="Submit">
+            </fieldset>
+        </form>
+    </div>
+</div>
+-->
+
+<div class="flex-container">
+    <div>
+        {% if routes|length < 1 %}
+        <h4 style="text-align: center">There are no routes. Create one below!</h4>
+        {% else %}
+        <table>
             <tr>
-                <td>{{ route.content }}</td>
+                <th>Route</th>
+                <th>Added</th>
+                <th>Actions</th>
+            </tr>
+            {% for route in routes %}
+            <tr>
+                <td>{{ route.name }}</td>
                 <td>{{ route.date_created.date() }}</td>
                 <td>
                     <a href="/delete/{{route.id}}">Delete</a>
@@ -32,14 +77,22 @@
                     <a href="/update/{{route.id}}">Update</a>
                 </td>
             </tr>
-        {% endfor %}
-    </table>
-    {% endif %}
-
+            {% endfor %}
+        </table>
+        {% endif %}
+    </div>
     <div class="form">
         <form action="/" method="POST">
-            <input type="text" name="content" id="content">
-            <input type="submit" value="Add Route">
+            <!--<input type="text" name="content" id="content">-->
+            <!--<input type="submit" value="Add Route">-->
+
+            <fieldset>
+                <legend>Add new route:</legend>
+                Name: <input type="text" name="name" id="content"> <br>
+                Begin: <input type="text" name="begin" id="content"> <br>
+                End: <input type="text" name="end" id="content"><br>
+                <input type="submit" value="Submit">
+            </fieldset>
         </form>
     </div>
 </div>
