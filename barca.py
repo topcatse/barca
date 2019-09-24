@@ -1,73 +1,77 @@
-from flask import Flask, render_template, url_for, request, redirect
-from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import folium
-from openrouteservice import client
-from shapely.geometry import LineString, Polygon, mapping
-from shapely.ops import cascaded_union
-import time
+from flask import Flask, render_template, request, redirect
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.ext import mutable
+# from sqlalchemy.dialects import postgresql
+# from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import Column, Integer, String, DateTime, Numeric
+import json
+from routing import Routing
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///routes.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
+router = Routing()
+
+class JsonEncodedDict(db.TypeDecorator):
+    """Enables JSON storage by encoding and decoding on the fly."""
+    impl = db.Text
+
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return '{}'
+        else:
+            return json.dumps(value)
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return {}
+        else:
+            return json.loads(value)
+
+mutable.MutableDict.associate_with(JsonEncodedDict)
+
+# Base = declarative_base()
 
 class Todo(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(200), nullable=False)
-    begin = db.Column(db.Float, nullable=False)
-    end = db.Column(db.Float, nullable=False)
-    date_created = db.Column(db.DateTime, default=datetime.utcnow)
+    id = Column(Integer, primary_key=True)
+    name = Column(String(200), nullable=False)
+    begin_lat = Column(Numeric, nullable=False)
+    begin_lon = Column(Numeric, nullable=False)
+    end_lat = Column(Numeric, nullable=False)
+    end_lon = Column(Numeric, nullable=False)
+    route = Column(JsonEncodedDict)
+    date_created = Column(DateTime, default=datetime.utcnow)
 
     def __repr__(self):
         return '<Route %r>' % self.id
 
-class Routing:
-    api_key = '698696'
-    clnt = client.Client(key=api_key)
-
-    def style_function(self, color):  # To style data
-        return lambda feature: dict(color=color,
-                                    opacity=0.5,
-                                    weight=4, )
-
-    @property
-    def popup_route(self):
-        return "<h4>{0} route</h4><hr>" \
-            "<strong>Duration: </strong>{1:.1f} mins<br>" \
-            "<strong>Distance: </strong>{2:.3f} km"
-
-    def request_route(self, coordinates):
-        direction_params = {'coordinates': coordinates,
-                            'profile': 'driving-car',
-                            'format_out': 'geojson',
-                            'preference': 'shortest',
-                            'geometry': 'true'}
-        return self.clnt.directions(**direction_params)  # Direction request
-
-    def build_popup(self, route, map):
-        duration, distance = route['features'][0]['properties']['summary'].values()
-        return map.Popup(self.popup_route.format('Regular', duration/60, distance/1000))
-
-    def add_to_map(self, coordinates, map, name, colour):
-        route = self.request_route(coordinates)
-        folium.GeoJson(route,
-                       name=name,
-                       style_function=self.style_function(colour)) \
-            .add_child(self.build_popup(route, map)) \
-            .add_to(map)
 
 @app.route('/', methods=['POST', 'GET'])
 def index():
-    start_coords = (58.493694, 14.501953)
-    folium_map = folium.Map(location=start_coords, zoom_start=14,width='100%', height='75%')
-    folium_map.save('templates/map.html')
+    start_coords = (13.372582, 52.520295)
+    map = folium.Map(location=start_coords, zoom_start=14,width='100%', height='75%')
+    map.save('templates/map.html')
 
     if request.method == 'POST':
         route_name = request.form['name']
-        route_begin = request.form['begin']
-        route_end = request.form['end']
-        new_route = Todo(name=route_name, begin=route_begin, end=route_end)
+        route_begin = request.form['begin'].split(",")
+        route_end = request.form['end'].split(",")
+
+        for index, item in enumerate(route_begin):
+            route_begin[index] = float(item.strip())
+        for index, item in enumerate(route_end):
+            route_end[index] = float(item.strip())
+
+        route = router.add_to_map([route_begin, route_end], map, route_name, 'blue')
+
+        new_route = Todo(name=route_name,
+                         begin_lat=route_begin[0],
+                         begin_lon=route_begin[1],
+                         end_lat=route_end[0],
+                         end_lon=route_end[1])
 
         try:
             db.session.add(new_route)
@@ -97,7 +101,7 @@ def update(id):
     route = Todo.query.get_or_404(id)
 
     if request.method == 'POST':
-        route.content = request.form['content']
+        route.name = request.form['name']
 
         try:
             db.session.commit()
