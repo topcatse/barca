@@ -12,6 +12,7 @@ from routing import Routing
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///routes.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['TEMPLATES_AUTO_RELOAD'] = True
 db = SQLAlchemy(app)
 router = Routing()
 
@@ -48,11 +49,13 @@ class Todo(db.Model):
     def __repr__(self):
         return '<Route %r>' % self.id
 
+i = int(0)
 
 @app.route('/', methods=['POST', 'GET'])
 def index():
-    start_coords = (13.372582, 52.520295)
-    map = folium.Map(location=start_coords, zoom_start=14,width='100%', height='75%')
+    start_coords = (57.328004, 14.081726)
+    map = folium.Map(location=start_coords, zoom_start=5,width='100%', height='75%')
+    # route = router.add_to_map([[14.301453, 57.837441], [13.933411, 56.878999]], map, 'name', 'blue')
     map.save('templates/map.html')
 
     if request.method == 'POST':
@@ -65,7 +68,9 @@ def index():
         for index, item in enumerate(route_end):
             route_end[index] = float(item.strip())
 
-        route = router.add_to_map([route_begin, route_end], map, route_name, 'blue')
+        route = router.add_to_map([[14.301453, 57.837441], [13.933411, 56.0]], map, 'name', 'blue')
+        map.get_root().render()
+        map.save('templates/map.html')
 
         new_route = Todo(name=route_name,
                          begin_lat=route_begin[0],
@@ -81,6 +86,18 @@ def index():
             return 'There was an issue adding your route'
 
     else:
+        global i
+        if i == 0:
+            route = router.add_to_map([[14.301453, 57.837441], [13.933411, 56.878999]], map, 'name2', 'red')
+            # map.get_root().render()
+            map.save('templates/map.html')
+            i = 1
+        else:
+            route = router.add_to_map([[14.301453, 57.837441], [13.933411, 56.0]], map, 'name', 'blue')
+            # map.get_root().render()
+            map.save('templates/map.html')
+            i = 0
+
         routes = Todo.query.order_by(Todo.date_created).all()
         return render_template('index.html', routes=routes)
 

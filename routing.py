@@ -18,7 +18,7 @@ class Routing:
             "<strong>Distance: </strong>{2:.3f} km"
 
     def request_route(self, coordinates):
-        coordinates = [[13.372582, 52.520295], [13.391476, 52.508856]]
+        # coordinates = [[14.301453, 57.837441], [13.933411, 56.878999]]
         direction_params = {'coordinates': coordinates,
                             'profile': 'driving-car',
                             'format_out': 'geojson',
