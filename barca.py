@@ -38,11 +38,9 @@ mutable.MutableDict.associate_with(JsonEncodedDict)
 
 class Todo(db.Model):
     id = Column(Integer, primary_key=True)
-    name = Column(String(200), nullable=False)
-    begin_lat = Column(Numeric, nullable=False)
-    begin_lon = Column(Numeric, nullable=False)
-    end_lat = Column(Numeric, nullable=False)
-    end_lon = Column(Numeric, nullable=False)
+    name = Column(String(100), nullable=False)
+    start = Column(String(100), nullable=False)
+    stop = Column(String(100), nullable=False)
     route = Column(JsonEncodedDict)
     date_created = Column(DateTime, default=datetime.utcnow)
 
@@ -55,28 +53,20 @@ i = int(0)
 def index():
     start_coords = (57.328004, 14.081726)
     map = folium.Map(location=start_coords, zoom_start=5,width='100%', height='75%')
-    # route = router.add_to_map([[14.301453, 57.837441], [13.933411, 56.878999]], map, 'name', 'blue')
-    map.save('templates/map.html')
+    # map.save('templates/map.html')
 
     if request.method == 'POST':
         route_name = request.form['name']
-        route_begin = request.form['begin'].split(",")
-        route_end = request.form['end'].split(",")
+        route_start = request.form['begin']
+        route_stop = request.form['end']
 
-        for index, item in enumerate(route_begin):
-            route_begin[index] = float(item.strip())
-        for index, item in enumerate(route_end):
-            route_end[index] = float(item.strip())
-
-        route = router.add_to_map([[14.301453, 57.837441], [13.933411, 56.0]], map, 'name', 'blue')
+        route = router.add_to_map(route_start, route_stop, map, route_name, 'green')
         map.get_root().render()
         map.save('templates/map.html')
 
         new_route = Todo(name=route_name,
-                         begin_lat=route_begin[0],
-                         begin_lon=route_begin[1],
-                         end_lat=route_end[0],
-                         end_lon=route_end[1])
+                         start=route_start,
+                         stop=route_stop)
 
         try:
             db.session.add(new_route)
@@ -86,17 +76,23 @@ def index():
             return 'There was an issue adding your route'
 
     else:
-        global i
-        if i == 0:
-            route = router.add_to_map([[14.301453, 57.837441], [13.933411, 56.878999]], map, 'name2', 'red')
-            # map.get_root().render()
-            map.save('templates/map.html')
-            i = 1
-        else:
-            route = router.add_to_map([[14.301453, 57.837441], [13.933411, 56.0]], map, 'name', 'blue')
-            # map.get_root().render()
-            map.save('templates/map.html')
-            i = 0
+        # global i
+        # if i == 0:
+        #     route_name = 'name1'
+        #     route_start = '553 05 Jönköping'
+        #     route_stop = 'Carrer Montcada, 15-23, 08003 Barcelona, Spain'
+        #     colour = 'blue'
+        #     i = 1
+        # else:
+        #     route_name = 'name2'
+        #     route_start = '553 05 Jönköping'
+        #     route_stop = 'Kiel, Germany'
+        #     colour = 'red'
+        #     i = 0
+
+        # route = router.add_to_map(route_start, route_stop, map, 'name2', colour)
+        # # map.get_root().render()
+        # map.save('templates/map.html')
 
         routes = Todo.query.order_by(Todo.date_created).all()
         return render_template('index.html', routes=routes)

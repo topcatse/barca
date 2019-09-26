@@ -249,3 +249,7 @@ fabric.properties
 
 # End of https://www.gitignore.io/api/flask,python,pycharm
 templates/map\.html
+
+routes\.db
+
+\.env
