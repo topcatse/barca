@@ -1,6 +1,4 @@
 import polyline
-import json
-import os
 
 class DirsToGeojson:
     def __init__(self):
@@ -14,9 +12,6 @@ class DirsToGeojson:
 
         route = directions[0]['overview_polyline']['points']
         self.coords = polyline.decode(route, geojson=True)
-
-        # reverse order to comply with geojson spec
-        # self.coords_list = [[lon, lat] for lat, lon in coords]
 
         features = []
 
