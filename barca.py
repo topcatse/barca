@@ -15,6 +15,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 db = SQLAlchemy(app)
 router = Routing()
+map = folium.Map(location=(57.328004, 14.081726), zoom_start=5,width='100%', height='75%')
 
 class JsonEncodedDict(db.TypeDecorator):
     """Enables JSON storage by encoding and decoding on the fly."""
@@ -41,7 +42,11 @@ class Todo(db.Model):
     stop = Column(String(100), nullable=False)
     date_created = Column(DateTime, default=datetime.utcnow)
     route = Column(JsonEncodedDict)
+    coords = Column(PickleType)
     distances = Column(PickleType)
+    prev_coord = Column(PickleType)
+    prev_distance = Column(PickleType)
+    route_cur = Column(JsonEncodedDict)
 
     def __repr__(self):
         return '<Route %r>' % self.id
@@ -49,8 +54,6 @@ class Todo(db.Model):
 @app.route('/', methods=['POST', 'GET'])
 def index():
     start_coords = (57.328004, 14.081726)
-    map = folium.Map(location=start_coords, zoom_start=5,width='100%', height='75%')
-    # map.save('templates/map.html')
 
     if request.method == 'POST':
         route_name = request.form['name']
@@ -60,13 +63,17 @@ def index():
         directions = router.request_directions(route_start, route_stop)
         converter = DirsToGeojson()
         route = converter.features(directions, route_start, route_stop, route_name)
-        distances = router.distances(converter.coordinates())
+        coords = converter.coordinates()
+        distances = router.distances(coords)
 
         new_route = Todo(name=route_name,
                          start=route_start,
                          stop=route_stop,
                          route=route,
-                         distances=distances)
+                         coords=coords,
+                         distances=distances,
+                         prev_coord=coords[0],
+                         prev_distance=0)
 
         router.add_to_map(map, route, route_name, 'green')
         map.get_root().render()
@@ -98,9 +105,27 @@ def delete(id):
 @app.route('/update/<int:id>', methods=['GET', 'POST'])
 def update(id):
     route = Todo.query.get_or_404(id)
+    distance_update = 0
 
     if request.method == 'POST':
         route.name = request.form['name']
+        distance_update = int(request.form['distance'])
+
+        route_start = route.start
+        coord, total_distance = router.current_position(route.prev_distance,
+                                                        distance_update,
+                                                        route.coords,
+                                                        route.distances)
+
+        directions = router.request_directions(route_start, [coord[1], coord[0]])
+        converter = DirsToGeojson()
+        route.current = converter.features(directions, route_start, coord, route.name + '_cur')
+        route.prev_coord = coord
+        route.prev_distance = total_distance
+
+        router.add_to_map(map, route.current, route.name + '_cur', 'red')
+        map.get_root().render()
+        map.save('templates/map.html')
 
         try:
             db.session.commit()
@@ -109,7 +134,7 @@ def update(id):
             return 'There was an issue updating your route'
 
     else:
-        return render_template('update.html', route=route)
+        return render_template('update.html', route=route, distance=distance_update)
 
 
 if __name__ == "__main__":

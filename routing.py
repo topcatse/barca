@@ -4,10 +4,15 @@ import googlemaps
 from directions_to_geojson import DirsToGeojson
 from geopy.distance import distance
 from itertools import accumulate
+import utm
+import math
+from pyproj import CRS
+from pyproj import Transformer
 
 class Routing:
     api_key = os.environ.get('API_KEY_GOOGLEMAPS')
     client = googlemaps.Client(key=api_key)
+    crs = CRS.from_epsg(3857)
 
     def style_function(self, color):  # To style data
         return lambda feature: dict(color=color,
@@ -47,3 +52,32 @@ class Routing:
         leg_distances = map(lambda d: distance(origin, d).kilometers, coords)
         return list(accumulate(leg_distances))
 
+    def current_position(self, prev_distance, distance_update, coords, distances):
+        total_distance = prev_distance + distance_update;
+
+        legs_ahead_distances = list(filter(lambda d: d >= total_distance, distances))
+        if not legs_ahead_distances:
+            # Reached goal
+            return coords[-1]
+
+        next_leg = distances.index(legs_ahead_distances[0])
+        cur_leg = next_leg - 1
+        distance = total_distance - distances[cur_leg]
+        total_leg_distance = distances[next_leg] - distances[cur_leg]
+        fraction_of_leg = distance / total_leg_distance
+
+        proj = Transformer.from_crs(self.crs.geodetic_crs, self.crs)
+
+        start_coord = coords[cur_leg]
+        s = proj.transform(start_coord[0], start_coord[1])
+
+        end_coord = coords[next_leg]
+        e = proj.transform(end_coord[0], end_coord[1])
+
+        v = [(e[0] - s[0])*fraction_of_leg, (e[1] - s[1])*fraction_of_leg]
+
+        proj = Transformer.from_crs(self.crs, self.crs.geodetic_crs)
+
+        coord = proj.transform(s[0] + v[0], s[1] + v[1])
+
+        return coord, total_distance
