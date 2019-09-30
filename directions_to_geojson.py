@@ -4,14 +4,19 @@ class DirsToGeojson:
     def __init__(self):
         self.coords = []
 
+    # List of (lat,lon)
     def coordinates(self):
-        return [[lat, lon] for lat, lon in self.coords]
+        return self.coords
+
+    def coordinates_lonlat(self):
+        return [[lon, lat] for lat, lon in self.coords]
 
     def features(self, directions, src, dest, custom_label = None):
         default_name = "{0} to {1}".format(src, dest)
 
         route = directions[0]['overview_polyline']['points']
-        self.coords = polyline.decode(route, geojson=True)
+        coordinates = polyline.decode(route, geojson=True)
+        self.coords = [[lat, lon] for lon, lat in coordinates]
 
         features = []
 
@@ -22,7 +27,7 @@ class DirsToGeojson:
             },
             "geometry": {
                 "type": "MultiLineString",
-                "coordinates": [self.coords]
+                "coordinates": [coordinates]
             }
         })
 

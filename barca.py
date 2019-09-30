@@ -15,7 +15,8 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 db = SQLAlchemy(app)
 router = Routing()
-map = folium.Map(location=(57.328004, 14.081726), zoom_start=5,width='100%', height='75%')
+map = folium.Map(location=(57.328004, 14.081726), zoom_start=5, width='100%', height='75%')
+
 
 class JsonEncodedDict(db.TypeDecorator):
     """Enables JSON storage by encoding and decoding on the fly."""
@@ -33,7 +34,9 @@ class JsonEncodedDict(db.TypeDecorator):
         else:
             return json.loads(value)
 
+
 mutable.MutableDict.associate_with(JsonEncodedDict)
+
 
 class Todo(db.Model):
     id = Column(Integer, primary_key=True)
@@ -46,10 +49,11 @@ class Todo(db.Model):
     distances = Column(PickleType)
     prev_coord = Column(PickleType)
     prev_distance = Column(PickleType)
-    route_cur = Column(JsonEncodedDict)
+    current = Column(PickleType)
 
     def __repr__(self):
         return '<Route %r>' % self.id
+
 
 @app.route('/', methods=['POST', 'GET'])
 def index():
@@ -75,7 +79,7 @@ def index():
                          prev_coord=coords[0],
                          prev_distance=0)
 
-        router.add_to_map(map, route, route_name, 'green')
+        router.add_geojson(map, route, route_name, 'red')
         map.get_root().render()
         map.save('templates/map.html')
 
@@ -102,6 +106,7 @@ def delete(id):
     except:
         return 'There was a problem deleting that route'
 
+
 @app.route('/update/<int:id>', methods=['GET', 'POST'])
 def update(id):
     route = Todo.query.get_or_404(id)
@@ -112,18 +117,20 @@ def update(id):
         distance_update = int(request.form['distance'])
 
         route_start = route.start
-        coord, total_distance = router.current_position(route.prev_distance,
-                                                        distance_update,
-                                                        route.coords,
-                                                        route.distances)
+        current, prev_distance, done = router.current_route(route.prev_distance,
+                                                            distance_update,
+                                                            route.coords,
+                                                            route.distances)
 
-        directions = router.request_directions(route_start, [coord[1], coord[0]])
-        converter = DirsToGeojson()
-        route.current = converter.features(directions, route_start, coord, route.name + '_cur')
-        route.prev_coord = coord
-        route.prev_distance = total_distance
+        route.current = current
+        route.prev_distance = prev_distance
+        route.prev_coord = route.current[-1]
 
-        router.add_to_map(map, route.current, route.name + '_cur', 'red')
+        router.add_polyline(map, current, route.name + '_cur', 'green')
+        if done:
+            router.add_marker(map, current[-1], "Reached goal", 'green')
+        else:
+            router.add_marker(map, current[-1], "Head", 'blue')
         map.get_root().render()
         map.save('templates/map.html')
 
