@@ -1,18 +1,16 @@
 import os
 import folium
 import googlemaps
-from directions_to_geojson import DirsToGeojson
+from app.directions_to_geojson import DirsToGeojson
 from geopy.distance import distance
 from itertools import accumulate
-import utm
-import math
 from pyproj import CRS
-from pyproj import Transformer
 from pyproj import Proj
+from app import app
 
 
 class Routing:
-    api_key = os.environ.get('API_KEY_GOOGLEMAPS')
+    api_key = app.config['API_KEY_GOOGLEMAPS']
     client = googlemaps.Client(key=api_key)
     crs = CRS.from_epsg(3857)
 
