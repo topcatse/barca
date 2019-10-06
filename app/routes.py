@@ -1,23 +1,21 @@
+import folium
 from flask import render_template, flash, redirect, url_for, request
 from flask_login import login_user, logout_user, current_user, login_required
 from werkzeug.urls import url_parse
 from app import app, db
 from app.forms import LoginForm, RegistrationForm
 from app.models import User
-from flask import Flask, render_template, request, redirect
 from app.routing import Routing
 from app.directions_to_geojson import DirsToGeojson
 from app.models import Route
 
 router = Routing()
-
+map = folium.Map(location=(57.328004, 14.081726), zoom_start=5, width='100%', height='75%')
 
 @app.route('/', methods=['POST', 'GET'])
 @app.route('/index', methods=['POST', 'GET'])
 @login_required
 def index():
-    start_coords = (57.328004, 14.081726)
-
     if request.method == 'POST':
         route_name = request.form['name']
         route_start = request.form['begin']
@@ -40,7 +38,7 @@ def index():
 
         router.add_geojson(map, route, route_name, 'red')
         map.get_root().render()
-        map.save('templates/map.html')
+        map.save('app/templates/map.html')
 
         try:
             db.session.add(new_route)

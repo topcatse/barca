@@ -10,3 +10,7 @@ login = LoginManager(app)
 login.login_view = 'login'
 
 from app import routes, models
+
+# if __name__ == "__main__":
+#     app.run(debug=True)
+
