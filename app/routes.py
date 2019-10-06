@@ -129,6 +129,7 @@ def logout():
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
+    return redirect(url_for('index'))
     if current_user.is_authenticated:
         return redirect(url_for('index'))
     form = RegistrationForm()
