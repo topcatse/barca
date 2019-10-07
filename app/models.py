@@ -23,6 +23,10 @@ class User(UserMixin, db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
+    def my_routes(self):
+        own = Route.query.filter_by(user_id=self.id)
+        return own.order_by(Route.date_created.desc())
+
 
 @login.user_loader
 def load_user(id):

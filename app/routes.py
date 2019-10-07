@@ -10,7 +10,22 @@ from app.directions_to_geojson import DirsToGeojson
 from app.models import Route
 
 router = Routing()
-map = folium.Map(location=(57.328004, 14.081726), zoom_start=5, width='100%', height='75%')
+map_default = folium.Map(location=(57.328004, 14.081726), zoom_start=5, width='100%', height='75%')
+map = map_default
+
+
+def update_map():
+    map.get_root().render()
+    map.save('app/templates/map.html')
+
+
+def reset_map(do_update=False):
+    map = map_default
+    map.get_root().render()
+    map.save('app/templates/map.html')
+    if do_update:
+        update_map()
+
 
 @app.route('/', methods=['POST', 'GET'])
 @app.route('/index', methods=['POST', 'GET'])
@@ -28,17 +43,18 @@ def index():
         distances = router.distances(coords)
 
         new_route = Route(name=route_name,
-                         start=route_start,
-                         stop=route_stop,
-                         route=route,
-                         coords=coords,
-                         distances=distances,
-                         prev_coord=coords[0],
-                         prev_distance=0)
+                          start=route_start,
+                          stop=route_stop,
+                          route=route,
+                          coords=coords,
+                          distances=distances,
+                          prev_coord=coords[0],
+                          prev_distance=0,
+                          user=current_user)
 
+        # reset_map()
         router.add_geojson(map, route, route_name, 'red')
-        map.get_root().render()
-        map.save('app/templates/map.html')
+        update_map()
 
         try:
             db.session.add(new_route)
@@ -48,7 +64,8 @@ def index():
             return 'There was an issue adding your route'
 
     else:
-        routes = Route.query.order_by(Route.date_created).all()
+        routes = current_user.my_routes().all()
+        # routes = Route.query.order_by(Route.date_created).all()
         return render_template('index.html', routes=routes)
 
 
@@ -90,12 +107,11 @@ def update(id):
             router.add_marker(map, current[-1], "Reached goal", 'green')
         else:
             router.add_marker(map, current[-1], "Head", 'blue')
-        map.get_root().render()
-        map.save('templates/map.html')
+        update_map()
 
         try:
             db.session.commit()
-            return redirect(url_for('/'))
+            return redirect(url_for('index'))
         except:
             return 'There was an issue updating your route'
 
@@ -141,6 +157,3 @@ def register():
         flash('Congratulations, you are now a registered user!')
         return redirect(url_for('login'))
     return render_template('register.html', title='Register', form=form)
-
-
-
