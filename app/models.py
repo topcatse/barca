@@ -1,8 +1,8 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy.ext import mutable
-from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy import Column, Integer, String, DateTime, Boolean
 from sqlalchemy.types import PickleType
 import json
 from app import db, login
@@ -57,13 +57,15 @@ class Route(db.Model):
     name = Column(String(100), nullable=False)
     start = Column(String(100), nullable=False)
     stop = Column(String(100), nullable=False)
-    date_created = Column(DateTime, default=datetime.utcnow)
+    date_created = Column(DateTime, default=datetime.now)
+    date_finished = Column(DateTime, default=datetime.now)
     route = Column(JsonEncodedDict)
     coords = Column(PickleType)
     distances = Column(PickleType)
     prev_coord = Column(PickleType)
     prev_distance = Column(PickleType)
     current = Column(PickleType)
+    done = Column(Boolean)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
 
     def __repr__(self):

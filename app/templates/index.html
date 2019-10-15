@@ -11,18 +11,20 @@
 <div class="flex-container">
     <div>
         {% if routes|length < 1 %}
-        <h4 style="text-align: center">There are no routes. Create one below!</h4>
+        <h4 style="text-align: center">There are no routes. Create one!</h4>
         {% else %}
         <table>
             <tr>
                 <th>Route</th>
-                <th>Added</th>
+                <th>Started</th>
+                <th>Status</th>
                 <th>Actions</th>
             </tr>
             {% for route in routes %}
             <tr>
                 <td>{{ route.name }}</td>
                 <td>{{ route.date_created.date() }}</td>
+                <td>{{ status }}</td>
                 <td>
                     <a href="/delete/{{route.id}}">Delete</a>
                     <br>
