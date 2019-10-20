@@ -12,7 +12,7 @@ from app.models import Route
 
 
 def update_map(map):
-    folium.LayerControl().add_to(map)
+    folium.LayerControl(name="Route Master").add_to(map)
     map.get_root().render()
     map.save('app/templates/map.html')
 
@@ -27,7 +27,6 @@ def create_route(route_name, route_start, route_stop):
 
 def render(template):
     map = folium.Map(location=(57.328004, 14.081726), zoom_start=5, width='100%', height='75%')
-    status = ""
 
     routes = current_user.my_routes().all()
     for r in routes:
@@ -40,7 +39,7 @@ def render(template):
         if r.done:
             Routing.add_marker(group, coords[0], "Start", 'green')
             Routing.add_marker(group, coords[-1], "Reached goal", 'green')
-            status = r.date_finished.strftime("%Y-%m-%d")
+            r.status = r.date_finished.strftime("Reached goal %Y-%m-%d")
         else:
             Routing.add_marker(group, coords[0], "Start", 'red')
             Routing.add_marker(group, coords[-1], "Goal", 'red')
@@ -48,13 +47,11 @@ def render(template):
             if r.current:
                 Routing.add_polyline(group, r.current, r.name + '_cur', 'green')
                 achieved = int(r.prev_distance * 100 / distances[-1])
-                status = "{}% achieved".format(achieved)
-            else:
-                status = "Not started"
+                r.status = "{}% of goal".format(achieved)
 
     update_map(map)
 
-    return render_template(template, routes=routes, status=status)
+    return render_template(template, routes=routes)
 
 
 @app.route('/', methods=['POST', 'GET'])
