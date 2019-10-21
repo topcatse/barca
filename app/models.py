@@ -1,10 +1,9 @@
 from datetime import datetime
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
-from sqlalchemy.ext import mutable
 from sqlalchemy import Column, Integer, String, DateTime, Boolean
 from sqlalchemy.types import PickleType
-import json
+from sqlalchemy.dialects.postgresql import JSON
 from app import db, login
 
 
@@ -33,25 +32,6 @@ def load_user(id):
     return User.query.get(int(id))
 
 
-class JsonEncodedDict(db.TypeDecorator):
-    """Enables JSON storage by encoding and decoding on the fly."""
-    impl = db.Text
-
-    def process_bind_param(self, value, dialect):
-        if value is None:
-            return '{}'
-        else:
-            return json.dumps(value)
-
-    def process_result_value(self, value, dialect):
-        if value is None:
-            return {}
-        else:
-            return json.loads(value)
-
-mutable.MutableDict.associate_with(JsonEncodedDict)
-
-
 class Route(db.Model):
     id = Column(Integer, primary_key=True)
     name = Column(String(100), nullable=False)
@@ -59,13 +39,14 @@ class Route(db.Model):
     stop = Column(String(100), nullable=False)
     date_created = Column(DateTime, default=datetime.now)
     date_finished = Column(DateTime, default=datetime.now)
-    route = Column(JsonEncodedDict)
+    route = Column(JSON)
     coords = Column(PickleType)
     distances = Column(PickleType)
     prev_coord = Column(PickleType)
-    prev_distance = Column(PickleType)
+    prev_distance = Column(Integer)
     current = Column(PickleType)
     done = Column(Boolean)
+    status = Column(String(30), default="Not started")
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
 
     def __repr__(self):
